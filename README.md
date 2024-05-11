@@ -1,6 +1,6 @@
 # CollectBlue
 
-C# .NETのBlueskyライブラリです
+C# .NETのBluesky APIのラッパーライブラリです
 
 自分で必要な部分しかまだ実装されていません
 
