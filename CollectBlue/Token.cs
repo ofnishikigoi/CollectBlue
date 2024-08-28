@@ -70,11 +70,17 @@ namespace CollectBlue
                   if(exception as HttpRequestException != null)
                   {
                     var httpRequestException = exception as HttpRequestException;
-                    if(httpRequestException.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    if (httpRequestException.StatusCode == System.Net.HttpStatusCode.BadRequest)
                     {
                       // 400 bad request
                       // 対象者がいなくなった場合などに・・・
                       return new MemoryStream(Encoding.UTF8.GetBytes("{\"error\":\"400_bad_request\",\"message\":\"400 bad request\"}"));
+                    }
+                    if (httpRequestException.StatusCode == System.Net.HttpStatusCode.BadGateway)
+                    {
+                      // 502 gad gateway
+                      // 大半やり直せば何とかなる
+                      return new MemoryStream(Encoding.UTF8.GetBytes("{\"error\":\"502_bad_request\",\"message\":\"502 bad gateway\"}"));
                     }
                   }
                 }
@@ -214,7 +220,30 @@ namespace CollectBlue
         new UriBuilder(ServiceUrls.SearchPosts)
         {
           Query = string.Join("&", queryTable.Select(q => $"{q.Key}={q.Value}")),
-        }.Uri);
+        }.Uri)
+        .ContinueWith(t =>
+        {
+          if (t.Exception != null)
+          {
+            if (t.Exception.InnerExceptions.Any())
+            {
+              foreach (var exception in t.Exception.InnerExceptions)
+              {
+                if (exception as HttpRequestException != null)
+                {
+                  var httpRequestException = exception as HttpRequestException;
+                  if (httpRequestException.StatusCode == System.Net.HttpStatusCode.BadGateway)
+                  {
+                    // 502 gad gateway
+                    // 大半やり直せば何とかなる
+                    return new MemoryStream(Encoding.UTF8.GetBytes("{\"error\":\"502_bad_request\",\"message\":\"502 bad gateway\"}"));
+                  }
+                }
+              }
+            }
+          }
+          return t.Result;
+        });
       return PostCollection.CreateFromJson(stream);
 
     }
