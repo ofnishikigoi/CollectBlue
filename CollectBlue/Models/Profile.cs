@@ -39,6 +39,14 @@ namespace CollectBlue.Models
 
     [DataMember(Name = "indexedAt")]
     public string IndexedAt { get; set; }
+    [IgnoreDataMember]
+    public DateTime IndexedAtDateTime
+    {
+      get
+      {
+        return DateTime.Parse(IndexedAt);
+      }
+    }
 
     [DataMember(Name = "banner")]
     public string Banner { get; set; }

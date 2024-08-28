@@ -52,11 +52,42 @@ namespace CollectBlue
 
     private Task<Stream> GetProfileStream(string actor)
     {
-      return _httpClient.GetStreamAsync(
-              new UriBuilder(ServiceUrls.GetProfile)
+      try
+      {
+        return _httpClient.GetStreamAsync(
+                new UriBuilder(ServiceUrls.GetProfile)
+                {
+                  Query = $"actor={HttpUtility.UrlEncode(actor)}",
+                }.Uri)
+          .ContinueWith(t =>
+          {
+            if(t.Exception != null)
+            {
+              if(t.Exception.InnerExceptions.Any())
               {
-                Query = $"actor={HttpUtility.UrlEncode(actor)}",
-              }.Uri);
+                foreach(var exception in t.Exception.InnerExceptions)
+                {
+                  if(exception as HttpRequestException != null)
+                  {
+                    var httpRequestException = exception as HttpRequestException;
+                    if(httpRequestException.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                      // 400 bad request
+                      // 対象者がいなくなった場合などに・・・
+                      return new MemoryStream(Encoding.UTF8.GetBytes("{\"error\":\"400_bad_request\",\"message\":\"400 bad request\"}"));
+                    }
+                  }
+                }
+              }
+            }
+            return t.Result;
+          });
+      }
+      catch (Exception ex)
+      {
+
+      }
+      return null;
     }
 
     public async Task<string> GetProfileRaw(string actor)
